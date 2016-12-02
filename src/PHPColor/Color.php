@@ -1,5 +1,8 @@
 <?php
 namespace PHPColor;
+
+use InvalidArgumentException;
+
 /**
  * Color utility and conversion
  *
@@ -8,7 +11,11 @@ namespace PHPColor;
  * Example:
  * $color = new Color(0xFFFFFF);
  *
+ * ORIGINAL AUTHOR
  * @author Harold Asbridge <hasbridge@gmail.com>
+ *
+ * CHANGES BY
+ * @author Alex Regan <alex.joseph.regan@gmail.com>
  */
 class Color {
 	
@@ -17,6 +24,9 @@ class Color {
 	 */
 	protected $color = 0;
 	
+	/**
+	 * sRGB Matrix for RGB to XYZ conversion
+	 */
 	const sRGB_MATRIX = [
 		'x' => [ 'r' => 0.4124564, 'g' => 0.3575761, 'b' => 0.1804375, ],
 		'y' => [ 'r' => 0.2126729, 'g' => 0.7151522, 'b' => 0.0721750, ],
@@ -315,7 +325,6 @@ class Color {
 		{
 			if ( $item > 0.008856 )
 			{
-				//return $item ^ (1/3);
 				return pow( $item, 1 / 3 );
 			}
 			else
@@ -378,15 +387,15 @@ class Color {
 	 */
 	public function getDistanceRgbFrom( Color $color )
 	{
-		$rgb1 = $this->toRgbInt();
-		$rgb2 = $color->toRgbInt();
+		$rgb_1 = $this->toRgbInt();
+		$rgb_2 = $color->toRgbInt();
 		
-		$rDiff = abs( $rgb1['red'] - $rgb2['red'] );
-		$gDiff = abs( $rgb1['green'] - $rgb2['green'] );
-		$bDiff = abs( $rgb1['blue'] - $rgb2['blue'] );
+		$redDiff   = abs( $rgb_1['red'] - $rgb_2['red'] );
+		$greenDiff = abs( $rgb_1['green'] - $rgb_2['green'] );
+		$blueDiff  = abs( $rgb_1['blue'] - $rgb_2['blue'] );
 		
 		// Sum of RGB differences
-		$diff = $rDiff + $gDiff + $bDiff;
+		$diff = $redDiff + $greenDiff + $blueDiff;
 		
 		return $diff;
 	}
@@ -400,14 +409,14 @@ class Color {
 	 */
 	public function getDistanceLabFrom( Color $color )
 	{
-		$lab1 = $this->toLabCie();
-		$lab2 = $color->toLabCie();
+		$lab_1 = $this->toLabCie();
+		$lab_2 = $color->toLabCie();
 		
-		$lDiff = abs( $lab2['l'] - $lab1['l'] );
-		$aDiff = abs( $lab2['a'] - $lab1['a'] );
-		$bDiff = abs( $lab2['b'] - $lab1['b'] );
+		$l_diff = abs( $lab_2['l'] - $lab_1['l'] );
+		$a_diff = abs( $lab_2['a'] - $lab_1['a'] );
+		$b_diff = abs( $lab_2['b'] - $lab_1['b'] );
 		
-		$delta = sqrt( $lDiff + $aDiff + $bDiff );
+		$delta = sqrt( $l_diff + $a_diff + $b_diff );
 		
 		return $delta;
 	}
