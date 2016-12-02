@@ -9,7 +9,7 @@ use InvalidArgumentException;
  * Represents a color value, and converts between RGB/HSV/XYZ/Lab
  *
  * Example:
- * $color = new Color(0xFFFFFF);
+ * $color = new Color(0xffffff);
  *
  * ORIGINAL AUTHOR
  * @author Harold Asbridge <hasbridge@gmail.com>
@@ -18,6 +18,49 @@ use InvalidArgumentException;
  * @author Alex Regan <alex.joseph.regan@gmail.com>
  */
 class Color {
+	
+	/**
+	 * Colors constants
+	 *
+	 * @var integer
+	 */
+	const TRANSPARENT = 0x7fffffff; // extended from original 16 HTML colors
+	const AQUA        = 0x00ffff;
+	const BLACK       = 0x000000;
+	const BLUE        = 0x0000ff;
+	const FUCHSIA     = 0xff00ff;
+	const GRAY        = 0x080808;
+	const GREEN       = 0x008000;
+	const LIME        = 0x00ff00;
+	const MAROON      = 0x800000;
+	const NAVY        = 0x000080;
+	const OLIVE       = 0x808000; // extended from original 16 HTML colors
+	const ORANGE      = 0xff9900;
+	const PURPLE      = 0x800080;
+	const RED         = 0xff0000;
+	const SILVER      = 0xc0c0c0;
+	const TEAL        = 0x008080;
+	const YELLOW      = 0xffff00;
+	const WHITE       = 0xffffff;
+	
+	const HTML_BASE_16_COLORS = [
+		self::AQUA,
+		self::BLACK,
+		self::BLUE,
+		self::FUCHSIA,
+		self::GRAY,
+		self::GREEN,
+		self::LIME,
+		self::MAROON,
+		self::NAVY,
+		self::OLIVE,
+		self::PURPLE,
+		self::RED,
+		self::SILVER,
+		self::TEAL,
+		self::YELLOW,
+		self::WHITE,
+	];
 	
 	/**
 	 * @var int
@@ -419,6 +462,44 @@ class Color {
 		$delta = sqrt( $l_diff + $a_diff + $b_diff );
 		
 		return $delta;
+	}
+	
+	/**
+	 * Get distance from the given HEX color using the Delta E method
+	 *
+	 * @param $colorAsHex
+	 *
+	 * @return float
+	 */
+	public function getDeltaEFromHex( $colorAsHex )
+	{
+		return $this->getDistanceLabFrom( static::newFromHex( $colorAsHex ) );
+	}
+	
+	/**
+	 * Get distance from the given RGB color using the Delta E method
+	 *
+	 * @param $red
+	 * @param $green
+	 * @param $blue
+	 *
+	 * @return float
+	 */
+	public function getDeltaEFromRgb( $red, $green, $blue )
+	{
+		return $this->getDistanceLabFrom( static::newFromRgb( $red, $green, $blue ) );
+	}
+	
+	/**
+	 *  Get distance from the given RGB Integer color using the Delta E method
+	 *
+	 * @param $colorAsInteger
+	 *
+	 * @return float
+	 */
+	public function getDeltaEFromRgbInt( $colorAsInteger )
+	{
+		return $this->getDistanceLabFrom( static::newFromInt( $colorAsInteger ) );
 	}
 	
 	/**
