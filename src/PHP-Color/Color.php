@@ -17,16 +17,22 @@ class Color {
 	 */
 	protected $color = 0;
 	
+	const sRGB_MATRIX = [
+		'x' => [ 'r' => 0.4124564, 'g' => 0.3575761, 'b' => 0.1804375, ],
+		'y' => [ 'r' => 0.2126729, 'g' => 0.7151522, 'b' => 0.0721750, ],
+		'z' => [ 'r' => 0.0193339, 'g' => 0.1191920, 'b' => 0.9503041, ],
+	];
+	
 	/**
 	 * Initialize object
 	 *
-	 * @param int $color An integer color, such as a return value from imagecolorat()
+	 * @param int $colorAsInteger An integer color, such as a return value from imagecolorat()
 	 */
-	public function __construct( $color = NULL )
+	public function __construct( $colorAsInteger = NULL )
 	{
-		if ( $color )
+		if ( $colorAsInteger )
 		{
-			$this->fromInt( $color );
+			$this->fromInt( $colorAsInteger );
 		}
 	}
 	
@@ -35,7 +41,7 @@ class Color {
 	 *
 	 * @param string $hexValue
 	 *
-	 * @return Color
+	 * @return static
 	 */
 	public function fromHex( $hexValue )
 	{
@@ -51,7 +57,7 @@ class Color {
 	 * @param int $green
 	 * @param int $blue
 	 *
-	 * @return Color
+	 * @return static
 	 */
 	public function fromRgbInt( $red, $green, $blue )
 	{
@@ -67,7 +73,7 @@ class Color {
 	 * @param string $green
 	 * @param string $blue
 	 *
-	 * @return Color
+	 * @return static
 	 */
 	public function fromRgbHex( $red, $green, $blue )
 	{
@@ -79,11 +85,11 @@ class Color {
 	 *
 	 * @param int $intValue
 	 *
-	 * @return Color
+	 * @return static
 	 */
 	public function fromInt( $intValue )
 	{
-		$this->color = $intValue;
+		$this->color = (int) $intValue;
 		
 		return $this;
 	}
@@ -198,7 +204,7 @@ class Color {
 	 * Get HSV values for color
 	 * (integer values from 0-255, fast but less accurate)
 	 *
-	 * @return int
+	 * @return array
 	 */
 	public function toHsvInt()
 	{
@@ -258,7 +264,7 @@ class Color {
 	{
 		$rgb = $this->toRgbInt();
 		
-		// Normalize RGB values to 1
+		// Normalize RGB values to 1 (nominal energy range)
 		$rgb = array_map( function ( $item )
 		{
 			return $item / 255;
@@ -266,26 +272,29 @@ class Color {
 		
 		$rgb = array_map( function ( $item )
 		{
-			if ( $item > 0.04045 )
-			{
-				$item = pow( (($item + 0.055) / 1.055), 2.4 );
-			}
-			else
-			{
-				$item = $item / 12.92;
-			}
+			$item = $item > 0.04045 ? pow( (($item + 0.055) / 1.055), 2.4 ) : $item / 12.92;
 			
 			return ($item * 100);
 		}, $rgb );
 		
 		//Observer. = 2°, Illuminant = D65
-		$xyz = [
-			'x' => ($rgb['red'] * 0.4124) + ($rgb['green'] * 0.3576) + ($rgb['blue'] * 0.1805),
-			'y' => ($rgb['red'] * 0.2126) + ($rgb['green'] * 0.7152) + ($rgb['blue'] * 0.0722),
-			'z' => ($rgb['red'] * 0.0193) + ($rgb['green'] * 0.1192) + ($rgb['blue'] * 0.9505),
+		return [
+			'x' => (
+				($rgb['red'] * self::sRGB_MATRIX['x']['r'])
+				+ ($rgb['green'] * self::sRGB_MATRIX['x']['g'])
+				+ ($rgb['blue'] * self::sRGB_MATRIX['x']['b'])
+			),
+			'y' => (
+				($rgb['red'] * self::sRGB_MATRIX['y']['r'])
+				+ ($rgb['green'] * self::sRGB_MATRIX['y']['g'])
+				+ ($rgb['blue'] * self::sRGB_MATRIX['y']['b'])
+			),
+			'z' => (
+				($rgb['red'] * self::sRGB_MATRIX['z']['r'])
+				+ ($rgb['green'] * self::sRGB_MATRIX['z']['g'])
+				+ ($rgb['blue'] * self::sRGB_MATRIX['z']['b'])
+			),
 		];
-		
-		return $xyz;
 	}
 	
 	/**
@@ -297,7 +306,7 @@ class Color {
 	{
 		$xyz = $this->toXyz();
 		
-		//Ovserver = 2*, Iluminant=D65
+		//Observer = 2º, Illuminant=D65
 		$xyz['x'] /= 95.047;
 		$xyz['y'] /= 100;
 		$xyz['z'] /= 108.883;
@@ -404,13 +413,13 @@ class Color {
 	}
 	
 	/**
-	 * Detect if color is grayscale
+	 * Detect if color is gray-scale
 	 *
 	 * @param int @threshold
 	 *
 	 * @return bool
 	 */
-	public function isGrayscale( $threshold = 16 )
+	public function isGrayScale( $threshold = 16 )
 	{
 		$rgb = $this->toRgbInt();
 		
@@ -423,7 +432,7 @@ class Color {
 	}
 	
 	/**
-	 * Get the closest matching color from the given array of colors
+	 * Get the first closest matching color from the given array of colors
 	 *
 	 * @param array $colors array of integers or Color objects
 	 *
@@ -433,13 +442,13 @@ class Color {
 	{
 		$matchDist = 10000;
 		$matchKey  = NULL;
+		
 		foreach ( $colors as $key => $color )
 		{
-			if ( FALSE === ($color instanceof Color) )
-			{
-				$c = new Color( $color );
-			}
-			$dist = $this->getDistanceLabFrom( $c );
+			if ( ! $color instanceof Color ) $color = new Color( $color );
+			
+			$dist = $this->getDistanceLabFrom( $color );
+			
 			if ( $dist < $matchDist )
 			{
 				$matchDist = $dist;
@@ -448,5 +457,78 @@ class Color {
 		}
 		
 		return $matchKey;
+	}
+	
+	/**
+	 * Init color from integer color.
+	 *
+	 * @param $colorAsInteger
+	 *
+	 * @return static
+	 */
+	public static function newFromInt( $colorAsInteger )
+	{
+		if ( gettype( $colorAsInteger ) !== 'integer' )
+		{
+			$type = gettype( $colorAsInteger );
+			throw new InvalidArgumentException( "Expected an integer value, received type: [`{$type}`]" );
+		}
+		
+		return new static( $colorAsInteger );
+	}
+	
+	/**
+	 * @param $colorAsHex
+	 *
+	 * @return static
+	 */
+	public static function newFromHex( $colorAsHex )
+	{
+		$instance = new static;
+		
+		return $instance->fromHex( $colorAsHex );
+	}
+	
+	/**
+	 * Init color from integer RGB values
+	 *
+	 * @param int $red
+	 * @param int $green
+	 * @param int $blue
+	 *
+	 * @return static
+	 */
+	public static function newFromRgb( $red, $green, $blue )
+	{
+		if ( gettype( $red ) !== 'integer' || gettype( $green ) !== 'integer' || gettype( $blue ) !== 'integer' )
+		{
+			$redType   = gettype( $red );
+			$greenType = gettype( $green );
+			$blueType  = gettype( $blue );
+			
+			throw new InvalidArgumentException(
+				"Expected RGB values to be integers. Types received: red [`{$redType}`], green [`{$greenType}`], blue [`{$blueType}`]."
+			);
+		}
+		
+		$instance = new static;
+		
+		return $instance->fromRgbInt( $red, $green, $blue );
+	}
+	
+	/**
+	 * Init color from hex RGB values
+	 *
+	 * @param string $red
+	 * @param string $green
+	 * @param string $blue
+	 *
+	 * @return mixed
+	 */
+	public static function newFromRgbHex( $red, $green, $blue )
+	{
+		$instance = new static;
+		
+		return $instance->fromRgbHex( $red, $green, $blue );
 	}
 }
