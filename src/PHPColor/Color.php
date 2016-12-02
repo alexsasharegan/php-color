@@ -1,5 +1,5 @@
 <?php
-
+namespace PHPColor;
 /**
  * Color utility and conversion
  *
